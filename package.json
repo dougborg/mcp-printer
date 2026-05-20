@@ -61,13 +61,13 @@
     "format:check": "prettier --check \"**/*.{ts,json,md,yml,yaml}\""
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.20.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "crossnote": "^0.9.15",
-    "execa": "^9.6.0",
+    "execa": "^9.6.1",
     "gray-matter": "^4.0.3",
     "he": "^1.2.0",
     "highlight.js": "^11.11.1",
-    "pdf-parse": "^2.4.4",
+    "pdf-parse": "^2.4.5",
     "yn": "^5.1.0",
     "zod": "^3.25.76"
   },
@@ -75,17 +75,17 @@
     "@types/he": "^1.2.3",
     "@types/node": "^24.8.1",
     "@types/pdf-parse": "^1.1.5",
-    "@typescript-eslint/eslint-plugin": "^8.46.1",
-    "@typescript-eslint/parser": "^8.46.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.4",
+    "@typescript-eslint/parser": "^8.59.4",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.4",
     "np": "^10.2.0",
-    "prettier": "^3.6.2",
+    "prettier": "^3.8.3",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
