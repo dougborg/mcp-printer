@@ -1,7 +1,17 @@
-import yn from "yn"
 import { homedir } from "os"
 import { join } from "path"
 import { parseDelimitedString } from "./utils.js"
+
+const TRUTHY = new Set(["true", "yes", "y", "1", "on"])
+const FALSY = new Set(["false", "no", "n", "0", "off"])
+
+function envBool(value: string | undefined, defaultValue: boolean): boolean {
+  if (value === undefined) return defaultValue
+  const normalized = value.trim().toLowerCase()
+  if (TRUTHY.has(normalized)) return true
+  if (FALSY.has(normalized)) return false
+  return defaultValue
+}
 
 /**
  * Configuration interface for MCP Printer settings loaded from environment variables.
@@ -142,24 +152,20 @@ const userDeniedPaths = parseDelimitedString(process.env.MCP_PRINTER_DENIED_PATH
  */
 export const config: Config = {
   defaultPrinter: process.env.MCP_PRINTER_DEFAULT_PRINTER || DEFAULT_PRINTER,
-  autoDuplex: yn(process.env.MCP_PRINTER_AUTO_DUPLEX, { default: DEFAULT_AUTO_DUPLEX }),
+  autoDuplex: envBool(process.env.MCP_PRINTER_AUTO_DUPLEX, DEFAULT_AUTO_DUPLEX),
   defaultOptions: parseDelimitedString(process.env.MCP_PRINTER_DEFAULT_OPTIONS, /\s+/),
   chromePath: process.env.MCP_PRINTER_CHROME_PATH || DEFAULT_CHROME_PATH,
-  autoRenderMarkdown: yn(process.env.MCP_PRINTER_AUTO_RENDER_MARKDOWN, {
-    default: DEFAULT_AUTO_RENDER_MARKDOWN,
-  }),
-  autoRenderCode: yn(process.env.MCP_PRINTER_AUTO_RENDER_CODE, {
-    default: DEFAULT_AUTO_RENDER_CODE,
-  }),
-  enableManagement: yn(process.env.MCP_PRINTER_ENABLE_MANAGEMENT, {
-    default: DEFAULT_ENABLE_MANAGEMENT,
-  }),
-  enablePrompts: yn(process.env.MCP_PRINTER_ENABLE_PROMPTS, {
-    default: DEFAULT_ENABLE_PROMPTS,
-  }),
-  fallbackOnRenderError: yn(process.env.MCP_PRINTER_FALLBACK_ON_RENDER_ERROR, {
-    default: DEFAULT_FALLBACK_ON_RENDER_ERROR,
-  }),
+  autoRenderMarkdown: envBool(
+    process.env.MCP_PRINTER_AUTO_RENDER_MARKDOWN,
+    DEFAULT_AUTO_RENDER_MARKDOWN
+  ),
+  autoRenderCode: envBool(process.env.MCP_PRINTER_AUTO_RENDER_CODE, DEFAULT_AUTO_RENDER_CODE),
+  enableManagement: envBool(process.env.MCP_PRINTER_ENABLE_MANAGEMENT, DEFAULT_ENABLE_MANAGEMENT),
+  enablePrompts: envBool(process.env.MCP_PRINTER_ENABLE_PROMPTS, DEFAULT_ENABLE_PROMPTS),
+  fallbackOnRenderError: envBool(
+    process.env.MCP_PRINTER_FALLBACK_ON_RENDER_ERROR,
+    DEFAULT_FALLBACK_ON_RENDER_ERROR
+  ),
   // Use user-provided paths if set, otherwise use default allowed directories
   allowedPaths: hasUserPaths ? userAllowedPaths : [...defaultAllowedPaths],
   deniedPaths: [...defaultDeniedPaths, ...userDeniedPaths],
@@ -175,9 +181,10 @@ export const config: Config = {
       (s) => s.toLowerCase()
     ),
     colorScheme: process.env.MCP_PRINTER_CODE_COLOR_SCHEME || DEFAULT_CODE_COLOR_SCHEME,
-    autoLineNumbers: yn(process.env.MCP_PRINTER_CODE_AUTO_LINE_NUMBERS, {
-      default: DEFAULT_CODE_AUTO_LINE_NUMBERS,
-    }),
+    autoLineNumbers: envBool(
+      process.env.MCP_PRINTER_CODE_AUTO_LINE_NUMBERS,
+      DEFAULT_CODE_AUTO_LINE_NUMBERS
+    ),
     fontSize: process.env.MCP_PRINTER_CODE_FONT_SIZE || DEFAULT_CODE_FONT_SIZE,
     lineSpacing: process.env.MCP_PRINTER_CODE_LINE_SPACING || DEFAULT_CODE_LINE_SPACING,
   },

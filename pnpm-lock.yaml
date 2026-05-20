@@ -29,9 +29,6 @@ importers:
       pdf-parse:
         specifier: ^2.4.4
         version: 2.4.4
-      yn:
-        specifier: ^5.1.0
-        version: 5.1.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -4695,10 +4692,6 @@ packages:
 
   yauzl@2.10.0:
     resolution: {integrity: sha512-p4a9I6X6nu6IhoGmBqAcbJy1mlC4j27vEPZX9F4L4/vZT3Lyq1VkFHw/V/PUcB9Buo+DG3iHkT0x3Qya58zc3g==}
-
-  yn@5.1.0:
-    resolution: {integrity: sha512-TfXLvT6eVsBNIm8rAXTwJYdQFtOXaHQ+rA7LU8HL8C/BFfaSfhvFE5T1rHAdBCbAj808HaqjXVkmo8jmeGOqhw==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
@@ -9553,8 +9546,6 @@ snapshots:
     dependencies:
       buffer-crc32: 0.2.13
       fd-slicer: 1.1.0
-
-  yn@5.1.0: {}
 
   yocto-queue@0.1.0: {}
 

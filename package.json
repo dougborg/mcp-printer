@@ -68,7 +68,6 @@
     "he": "^1.2.0",
     "highlight.js": "^11.11.1",
     "pdf-parse": "^2.4.4",
-    "yn": "^5.1.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
