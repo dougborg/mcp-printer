@@ -5,10 +5,11 @@
  * exercised here.
  */
 
-import { describe, it, expect, vi } from "vitest"
-import { unlinkSync } from "fs"
+import { describe, it, vi } from "vitest"
 
-// Mock config to allow access to test directory
+// Mock config to allow access to the test directory. Must run before
+// importing renderCodeToPdf so the renderer sees our widened
+// allowedPaths.
 vi.mock("../../src/config.js", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { dirname, join } = require("path")
@@ -35,142 +36,37 @@ vi.mock("../../src/config.js", () => {
 })
 
 import { renderCodeToPdf } from "../../src/renderers/code.js"
+import { expectRenderedPdf, withTempFile } from "./helpers.js"
 
 describe("renderCodeToPdf", () => {
-  it("should render a simple JavaScript file to PDF", async () => {
-    // Create a simple test file in the test tmp directory
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-code.js")
-    writeFileSync(testFile, "const x = 5;\nconsole.log(x);", "utf-8")
-
-    try {
-      const pdfPath = await renderCodeToPdf(testFile)
-
-      // Check that PDF was created
-      expect(pdfPath).toBeDefined()
-      expect(pdfPath).toContain(".pdf")
-
-      // Check that file exists
-      const { existsSync } = await import("fs")
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      // Clean up on error
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+  it("renders a simple JavaScript file to PDF", async () => {
+    await withTempFile("test-code.js", "const x = 5;\nconsole.log(x);", (path) =>
+      expectRenderedPdf(renderCodeToPdf, path)
+    )
   })
 
-  it("should handle different languages", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-code.py")
-    writeFileSync(testFile, 'def hello():\n    print("Hello")', "utf-8")
-
-    try {
-      const pdfPath = await renderCodeToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+  it("handles different languages", async () => {
+    await withTempFile("test-code.py", 'def hello():\n    print("Hello")', (path) =>
+      expectRenderedPdf(renderCodeToPdf, path)
+    )
   })
 
-  it("should respect line numbers parameter", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-code.ts")
-    writeFileSync(testFile, "const y = 10;", "utf-8")
-
-    try {
-      // With line numbers
-      const pdfWithNumbers = await renderCodeToPdf(testFile, { lineNumbers: true })
-      expect(pdfWithNumbers).toBeDefined()
-      unlinkSync(pdfWithNumbers)
-
-      // Without line numbers
-      const pdfWithoutNumbers = await renderCodeToPdf(testFile, { lineNumbers: false })
-      expect(pdfWithoutNumbers).toBeDefined()
-      unlinkSync(pdfWithoutNumbers)
-
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+  it("respects the lineNumbers option in both directions", async () => {
+    await withTempFile("test-code.ts", "const y = 10;", async (path) => {
+      await expectRenderedPdf((p) => renderCodeToPdf(p, { lineNumbers: true }), path)
+      await expectRenderedPdf((p) => renderCodeToPdf(p, { lineNumbers: false }), path)
+    })
   })
 
-  it("should handle empty files", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-empty.js")
-    writeFileSync(testFile, "", "utf-8")
-
-    try {
-      const pdfPath = await renderCodeToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+  it("handles empty files", async () => {
+    await withTempFile("test-empty.js", "", (path) => expectRenderedPdf(renderCodeToPdf, path))
   })
 
-  it("should handle files with special characters", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-special-chars.js")
-    writeFileSync(testFile, 'const str = "Hello <world> & \"quotes\"";', "utf-8")
-
-    try {
-      const pdfPath = await renderCodeToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+  it("handles files with HTML special characters in the source", async () => {
+    await withTempFile(
+      "test-special-chars.js",
+      'const str = "Hello <world> & \\"quotes\\"";',
+      (path) => expectRenderedPdf(renderCodeToPdf, path)
+    )
   })
 })

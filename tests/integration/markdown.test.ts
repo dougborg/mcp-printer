@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from "vitest"
-import { existsSync, unlinkSync } from "fs"
+import { describe, it, vi } from "vitest"
 
-// Mock config to allow access to test directory
+// Mock config to allow access to the test directory. Must run before
+// importing renderMarkdownToPdf so the renderer sees our widened
+// allowedPaths.
 vi.mock("../../src/config.js", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { dirname, join } = require("path")
@@ -21,48 +22,17 @@ vi.mock("../../src/config.js", () => {
 })
 
 import { renderMarkdownToPdf } from "../../src/renderers/markdown.js"
+import { expectRenderedPdf, withTempFile } from "./helpers.js"
 
 describe("renderMarkdownToPdf", () => {
-  it("should render a simple markdown file to PDF", async () => {
-    // Create a simple test file in the test tmp directory
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test.md")
-    writeFileSync(testFile, "# Hello World\n\nThis is a **test** markdown file.", "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-
-      expect(pdfPath).toBeDefined()
-      expect(pdfPath).toContain(".pdf")
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      // Clean up even on error
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+  it("renders a simple markdown file to PDF", async () => {
+    await withTempFile("test.md", "# Hello World\n\nThis is a **test** markdown file.", (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should handle markdown with code blocks", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-code-blocks.md")
-
-    const markdownContent = `# Code Example
+  it("handles markdown with code blocks", async () => {
+    const content = `# Code Example
 
 \`\`\`javascript
 const x = 5;
@@ -70,35 +40,13 @@ console.log(x);
 \`\`\`
 
 Some text after the code.`
-
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+    await withTempFile("test-code-blocks.md", content, (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should handle markdown with lists and formatting", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-formatting.md")
-
-    const markdownContent = `# Features
+  it("handles markdown with lists and formatting", async () => {
+    const content = `# Features
 
 - **Bold text**
 - *Italic text*
@@ -109,124 +57,36 @@ Some text after the code.`
 3. Third item
 
 > This is a blockquote`
-
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+    await withTempFile("test-formatting.md", content, (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should handle empty markdown files", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-empty.md")
-    writeFileSync(testFile, "", "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+  it("handles empty markdown files", async () => {
+    await withTempFile("test-empty.md", "", (path) => expectRenderedPdf(renderMarkdownToPdf, path))
   })
 
-  it("should handle markdown with special characters", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-special.md")
-
-    const markdownContent = `# Special Characters
+  it("handles markdown with special characters", async () => {
+    const content = `# Special Characters
 
 HTML entities: < > & "
 
 Math symbols: α β γ Δ
 
 Emoji: 🎉 ✨ 🚀`
-
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+    await withTempFile("test-special.md", content, (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should inject page numbering into markdown without front-matter", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-no-frontmatter.md")
-
-    const markdownContent = "# Hello World\n\nThis is a test."
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+  it("injects page numbering into markdown without front-matter", async () => {
+    await withTempFile("test-no-frontmatter.md", "# Hello World\n\nThis is a test.", (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should merge page numbering with existing front-matter", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-existing-frontmatter.md")
-
-    const markdownContent = `---
+  it("merges page numbering with existing front-matter", async () => {
+    const content = `---
 title: My Document
 author: Test Author
 ---
@@ -234,35 +94,13 @@ author: Test Author
 # Hello World
 
 This is a test with existing front-matter.`
-
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+    await withTempFile("test-existing-frontmatter.md", content, (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should respect existing chrome configuration in front-matter", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-existing-chrome-config.md")
-
-    const markdownContent = `---
+  it("respects existing chrome configuration in front-matter", async () => {
+    const content = `---
 chrome:
   displayHeaderFooter: false
 ---
@@ -270,35 +108,13 @@ chrome:
 # Hello World
 
 This document has its own chrome config that should not be overridden.`
-
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+    await withTempFile("test-existing-chrome-config.md", content, (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should respect existing puppeteer configuration in front-matter", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-existing-puppeteer-config.md")
-
-    const markdownContent = `---
+  it("respects existing puppeteer configuration in front-matter", async () => {
+    const content = `---
 puppeteer:
   displayHeaderFooter: true
   headerTemplate: '<div>Custom Header</div>'
@@ -307,86 +123,30 @@ puppeteer:
 # Hello World
 
 This document has its own puppeteer config that should not be overridden.`
-
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+    await withTempFile("test-existing-puppeteer-config.md", content, (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should handle empty front-matter blocks", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const testFile = join(__dirname, "../tmp/test-empty-frontmatter.md")
-
-    const markdownContent = `---
+  it("handles empty front-matter blocks", async () => {
+    const content = `---
 ---
 
 # Hello World
 
 This has an empty front-matter block.`
-
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+    await withTempFile("test-empty-frontmatter.md", content, (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 
-  it("should handle filenames with HTML special characters", async () => {
-    const { writeFileSync } = await import("fs")
-    const { join, dirname } = await import("path")
-    const { fileURLToPath } = await import("url")
-
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    // Filename with HTML entities that need escaping: < > & "
-    const testFile = join(__dirname, "../tmp/test-html-chars.md")
-
-    const markdownContent =
+  it("handles filenames with HTML special characters in the footer", async () => {
+    // The renderer HTML-escapes filenames for the page footer; verifying
+    // the render completes is a smoke test for the escape path.
+    const content =
       "# Test HTML Escaping\n\nThis tests that filenames with HTML special characters are properly escaped."
-    writeFileSync(testFile, markdownContent, "utf-8")
-
-    try {
-      const pdfPath = await renderMarkdownToPdf(testFile)
-      expect(pdfPath).toBeDefined()
-      expect(existsSync(pdfPath)).toBe(true)
-
-      // Clean up
-      unlinkSync(pdfPath)
-      unlinkSync(testFile)
-    } catch (error) {
-      try {
-        unlinkSync(testFile)
-      } catch {}
-      throw error
-    }
+    await withTempFile("test-html-chars.md", content, (path) =>
+      expectRenderedPdf(renderMarkdownToPdf, path)
+    )
   })
 })
