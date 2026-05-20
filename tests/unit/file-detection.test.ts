@@ -1,148 +1,136 @@
-/**
- * @fileoverview Unit tests for file type detection logic
- */
-
-import { describe, it, expect } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { join } from "path"
-import { shouldRenderToPdf, hasShebang } from "../../src/utils.js"
+
+// Mock config with rendering enabled and no excluded extensions so each
+// describe block can drive shouldRenderToPdf / shouldRenderCode through
+// known states. Individual tests flip flags via the live `config` object
+// captured below.
+vi.mock("../../src/config.js", () => ({
+  config: {
+    autoRenderMarkdown: true,
+    autoRenderCode: true,
+    code: {
+      excludeExtensions: [] as string[],
+    },
+  },
+  MARKDOWN_EXTENSIONS: ["md", "markdown"] as const,
+}))
+
+import { hasShebang, shouldRenderToPdf } from "../../src/utils.js"
 import { shouldRenderCode } from "../../src/renderers/code.js"
+import { config } from "../../src/config.js"
+
+const fixturesDir = join(process.cwd(), "tests", "fixtures")
 
 describe("shouldRenderToPdf", () => {
-  it("should return true for markdown extensions (based on config at load time)", () => {
-    // This test checks that markdown file extensions are recognized
-    // The actual rendering decision depends on config.autoRenderMarkdown
-    // which is loaded at startup
-    const result = shouldRenderToPdf("README.md")
-    // Result depends on MCP_PRINTER_AUTO_RENDER_MARKDOWN env var at startup
-    expect(typeof result).toBe("boolean")
+  beforeEach(() => {
+    config.autoRenderMarkdown = true
   })
 
-  it("should be case insensitive for extensions", () => {
-    const result1 = shouldRenderToPdf("FILE.MD")
-    const result2 = shouldRenderToPdf("File.Md")
-    // Both should return the same result
-    expect(result1).toBe(result2)
+  it("returns true for the canonical markdown extensions", () => {
+    expect(shouldRenderToPdf("README.md")).toBe(true)
+    expect(shouldRenderToPdf("notes.markdown")).toBe(true)
   })
 
-  it("should return false for non-markdown extensions", () => {
+  it("is case-insensitive on the extension", () => {
+    expect(shouldRenderToPdf("FILE.MD")).toBe(true)
+    expect(shouldRenderToPdf("File.Md")).toBe(true)
+    expect(shouldRenderToPdf("NOTES.MARKDOWN")).toBe(true)
+  })
+
+  it("uses the final extension when the filename contains multiple dots", () => {
+    expect(shouldRenderToPdf("my.file.name.md")).toBe(true)
+    expect(shouldRenderToPdf("my.md.bak")).toBe(false)
+  })
+
+  it("returns false for non-markdown extensions and bare names", () => {
     expect(shouldRenderToPdf("file.txt")).toBe(false)
     expect(shouldRenderToPdf("file.pdf")).toBe(false)
     expect(shouldRenderToPdf("README")).toBe(false)
+    expect(shouldRenderToPdf("script.js")).toBe(false)
   })
 
-  it("should handle multiple dots in filename", () => {
-    const result = shouldRenderToPdf("my.file.name.md")
-    // Should be consistent with other .md files
-    expect(typeof result).toBe("boolean")
+  it("returns false for everything when autoRenderMarkdown is disabled", () => {
+    config.autoRenderMarkdown = false
+    expect(shouldRenderToPdf("README.md")).toBe(false)
+    expect(shouldRenderToPdf("notes.markdown")).toBe(false)
   })
 })
 
 describe("shouldRenderCode", () => {
-  it("should return false for excluded extensions", async () => {
-    // Test with extensions that might be in the exclude list
-    // The actual result depends on MCP_PRINTER_CODE_EXCLUDE_EXTENSIONS
-    const result = await shouldRenderCode("file.txt")
-    expect(typeof result).toBe("boolean")
+  beforeEach(() => {
+    config.autoRenderCode = true
+    config.code.excludeExtensions = []
   })
 
-  it("should return true for whitelisted code extensions when enabled", async () => {
-    // Whitelisted code extensions should return true (unless excluded or autoRenderCode is off)
-    const jsResult = await shouldRenderCode("script.js")
-    const pyResult = await shouldRenderCode("app.py")
-    const tsResult = await shouldRenderCode("component.ts")
-    const jsonResult = await shouldRenderCode("config.json")
-    const rsResult = await shouldRenderCode("main.rs")
-    const goResult = await shouldRenderCode("server.go")
-
-    // All should be boolean
-    expect(typeof jsResult).toBe("boolean")
-    expect(typeof pyResult).toBe("boolean")
-    expect(typeof tsResult).toBe("boolean")
-    expect(typeof jsonResult).toBe("boolean")
-    expect(typeof rsResult).toBe("boolean")
-    expect(typeof goResult).toBe("boolean")
+  it("returns true for whitelisted source extensions", async () => {
+    expect(await shouldRenderCode("script.js")).toBe(true)
+    expect(await shouldRenderCode("app.py")).toBe(true)
+    expect(await shouldRenderCode("component.ts")).toBe(true)
+    expect(await shouldRenderCode("config.json")).toBe(true)
+    expect(await shouldRenderCode("main.rs")).toBe(true)
+    expect(await shouldRenderCode("server.go")).toBe(true)
   })
 
-  it("should return false for unknown extensions without shebang", async () => {
-    // Unknown extensions without shebang should return false (not in whitelist)
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
-    const result = await shouldRenderCode(join(fixturesDir, "no-shebang-plain"))
-    expect(result).toBe(false)
+  it("returns true for whitelisted extensionless filenames", async () => {
+    expect(await shouldRenderCode(join(fixturesDir, "Makefile"))).toBe(true)
   })
 
-  it("should return true for whitelisted extensionless code files", async () => {
-    // Special extensionless files should return true
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
-    const makefileResult = await shouldRenderCode(join(fixturesDir, "Makefile"))
-    expect(makefileResult).toBe(true)
-  })
-
-  it("should return false for non-whitelisted extensionless files without shebang", async () => {
-    // Plain text extensionless files without shebang should return false
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
+  it("returns false for non-whitelisted extensionless files without shebang", async () => {
     expect(await shouldRenderCode(join(fixturesDir, "LICENSE"))).toBe(false)
     expect(await shouldRenderCode(join(fixturesDir, "README"))).toBe(false)
     expect(await shouldRenderCode(join(fixturesDir, "CHANGELOG"))).toBe(false)
   })
 
-  it("should handle case sensitivity in exclusions", async () => {
-    const result = await shouldRenderCode("file.TXT")
-    // Should be case-insensitive
-    expect(typeof result).toBe("boolean")
+  it("falls back to shebang detection for files with no recognised extension", async () => {
+    expect(await shouldRenderCode(join(fixturesDir, "shebang-first-line"))).toBe(true)
+    expect(await shouldRenderCode(join(fixturesDir, "shebang-env-style"))).toBe(true)
+    expect(await shouldRenderCode(join(fixturesDir, "no-shebang-plain"))).toBe(false)
   })
 
-  it("should detect shebang on first line", async () => {
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
-    // File with shebang on first line should return true
-    const result = await shouldRenderCode(join(fixturesDir, "shebang-first-line"))
-    expect(result).toBe(true)
+  it("respects the excludeExtensions list even for whitelisted languages", async () => {
+    config.code.excludeExtensions = ["js", "py"]
+    expect(await shouldRenderCode("script.js")).toBe(false)
+    expect(await shouldRenderCode("app.py")).toBe(false)
+    // Other languages still render.
+    expect(await shouldRenderCode("main.rs")).toBe(true)
   })
 
-  it("should detect shebang after blank lines", async () => {
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
-    // File with shebang after blank line should return true
-    const result = await shouldRenderCode(join(fixturesDir, "shebang-after-blank"))
-    expect(result).toBe(true)
+  it("normalizes excluded extensions to lower case before comparing", async () => {
+    config.code.excludeExtensions = ["ts"]
+    expect(await shouldRenderCode("script.TS")).toBe(false)
+    expect(await shouldRenderCode("script.Ts")).toBe(false)
   })
 
-  it("should detect env-style shebang", async () => {
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
-    // File with #!/usr/bin/env style shebang should return true
-    const result = await shouldRenderCode(join(fixturesDir, "shebang-env-style"))
-    expect(result).toBe(true)
+  it("returns false for everything when autoRenderCode is disabled", async () => {
+    config.autoRenderCode = false
+    expect(await shouldRenderCode("script.js")).toBe(false)
+    expect(await shouldRenderCode(join(fixturesDir, "Makefile"))).toBe(false)
+    expect(await shouldRenderCode(join(fixturesDir, "shebang-first-line"))).toBe(false)
   })
 })
 
 describe("hasShebang", () => {
-  it("should detect shebang on first line", async () => {
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
+  it("detects a shebang on the first line", async () => {
     expect(await hasShebang(join(fixturesDir, "shebang-first-line"))).toBe(true)
   })
 
-  it("should detect shebang after blank lines", async () => {
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
+  it("detects a shebang after blank lines", async () => {
     expect(await hasShebang(join(fixturesDir, "shebang-after-blank"))).toBe(true)
   })
 
-  it("should detect env-style shebang", async () => {
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
+  it("detects an env-style shebang", async () => {
     expect(await hasShebang(join(fixturesDir, "shebang-env-style"))).toBe(true)
   })
 
-  it("should return false for files without shebang", async () => {
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
+  it("returns false for files without a shebang", async () => {
     expect(await hasShebang(join(fixturesDir, "no-shebang-plain"))).toBe(false)
     expect(await hasShebang(join(fixturesDir, "LICENSE"))).toBe(false)
     expect(await hasShebang(join(fixturesDir, "README"))).toBe(false)
-  })
-
-  it("should return false for non-existent files", async () => {
-    expect(await hasShebang("/nonexistent/file")).toBe(false)
-  })
-
-  it("should handle files with code-like content but no shebang", async () => {
-    const fixturesDir = join(process.cwd(), "tests", "fixtures")
-    // hello.py has .py extension so it's code, but this tests the function directly
     expect(await hasShebang(join(fixturesDir, "notes.txt"))).toBe(false)
+  })
+
+  it("returns false for non-existent files", async () => {
+    expect(await hasShebang("/nonexistent/file-that-does-not-exist")).toBe(false)
   })
 })
