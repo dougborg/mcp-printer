@@ -55,6 +55,7 @@
     "test:watch": "vitest tests/unit",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "test:coverage:unit": "vitest run tests/unit --coverage",
     "lint": "eslint src tests --ext .ts",
     "lint:fix": "eslint src tests --ext .ts --fix",
     "format": "prettier --write \"**/*.{ts,json,md,yml,yaml}\"",

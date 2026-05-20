@@ -21,13 +21,17 @@ export default defineConfig({
         "src/**/*.d.ts",
         "src/index.ts", // Entry point - just calls startServer
       ],
-      // Coverage thresholds (optional - can be enabled later)
-      // thresholds: {
-      //   lines: 80,
-      //   functions: 80,
-      //   branches: 80,
-      //   statements: 80,
-      // },
+      // Conservative global floor that captures the current unit-only
+      // baseline. As coverage grows (e.g., the dedicated config / utils
+      // / batch-helpers tests in follow-up work), nudge these up to
+      // lock in the gain — but keep a small buffer to avoid flaking on
+      // noise.
+      thresholds: {
+        statements: 20,
+        branches: 20,
+        functions: 20,
+        lines: 20,
+      },
     },
 
     // Include and exclude patterns
