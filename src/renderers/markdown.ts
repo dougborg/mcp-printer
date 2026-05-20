@@ -23,7 +23,7 @@ import { Notebook } from "crossnote"
  * @param filename - The name of the file being rendered (displayed in footer)
  * @returns Configuration object with header/footer templates
  */
-function getPageNumberConfig(filename: string) {
+export function getPageNumberConfig(filename: string) {
   // Puppeteer PDF headers/footers require inline styles (no external CSS support)
   const footerStyles = {
     container: [
@@ -65,7 +65,7 @@ function getPageNumberConfig(filename: string) {
  * @param filename - Name of the file being rendered (displayed in footer)
  * @returns Markdown content with page numbering front-matter added/merged
  */
-function injectPageNumbering(content: string, filename: string): string {
+export function injectPageNumbering(content: string, filename: string): string {
   const { data, content: body } = matter(content)
 
   // Check if user already has chrome or puppeteer config in their frontmatter -

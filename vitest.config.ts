@@ -27,10 +27,10 @@ export default defineConfig({
       // lock in the gain — but keep a small buffer to avoid flaking on
       // noise.
       thresholds: {
-        statements: 20,
-        branches: 20,
-        functions: 20,
-        lines: 20,
+        statements: 24,
+        branches: 24,
+        functions: 24,
+        lines: 24,
       },
     },
 
