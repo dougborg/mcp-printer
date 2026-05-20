@@ -168,7 +168,7 @@ export async function handlePrint(spec: FilePrintSpec): Promise<PrintResult> {
       }
     } finally {
       // Clean up rendered PDF if it was created
-      cleanupRenderedPdf(renderedPdf)
+      await cleanupRenderedPdf(renderedPdf)
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -322,7 +322,7 @@ export async function handlePageMeta(spec: FilePageMetaSpec): Promise<PageMetaRe
       }
     } finally {
       // Clean up rendered PDF if it was created
-      cleanupRenderedPdf(renderedPdf)
+      await cleanupRenderedPdf(renderedPdf)
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

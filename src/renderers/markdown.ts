@@ -6,7 +6,7 @@
  */
 
 import { basename, join } from "path"
-import { readFileSync, writeFileSync, mkdtempSync, unlinkSync } from "fs"
+import { mkdtemp, readFile, rm, writeFile } from "fs/promises"
 import { tmpdir } from "os"
 import matter from "gray-matter"
 import he from "he"
@@ -95,83 +95,52 @@ function injectPageNumbering(content: string, filename: string): string {
  * @throws {Error} If Chrome is not found or rendering fails
  */
 export async function renderMarkdownToPdf(filePath: string): Promise<string> {
-  // Validate file path security
-  validateFilePath(filePath)
+  await validateFilePath(filePath)
 
-  // Read the original markdown content
-  const originalContent = readFileSync(filePath, "utf-8")
+  // Read the source, create the temp dir, and locate Chrome in parallel —
+  // none of these depend on each other.
+  const [originalContent, tempDir, chromePath] = await Promise.all([
+    readFile(filePath, "utf-8"),
+    mkdtemp(join(tmpdir(), "mcp-printer-markdown-")),
+    config.chromePath ? Promise.resolve(config.chromePath) : findChrome(),
+  ])
 
-  // Inject page numbering configuration if not already present
-  const contentWithPageNumbers = injectPageNumbering(originalContent, basename(filePath))
-
-  // Create a temporary directory for the modified markdown file
-  const tempDir = mkdtempSync(join(tmpdir(), "mcp-printer-markdown-"))
   const tempFileName = basename(filePath)
   const tempFilePath = join(tempDir, tempFileName)
-
-  // Write the modified content to temp file
-  writeFileSync(tempFilePath, contentWithPageNumbers, "utf-8")
-
-  // Find Chrome executable (required by crossnote/puppeteer)
-  const chromePath = config.chromePath || (await findChrome())
-
-  let outputPath: string
+  const contentWithPageNumbers = injectPageNumbering(originalContent, tempFileName)
+  await writeFile(tempFilePath, contentWithPageNumbers, "utf-8")
 
   try {
-    // Initialize crossnote notebook with configuration, pointing to temp directory
     const notebook = await Notebook.init({
       notebookPath: tempDir,
       config: {
-        // Hardcoded themes optimized for printing (light background, clean styling)
+        // Themes hardcoded for printing: light background, clean styling.
         previewTheme: "github-light.css",
         codeBlockTheme: "github.css",
         mermaidTheme: "default",
-
-        // Math rendering
         mathRenderingOption: "KaTeX",
-
-        // Rendering options
         printBackground: true,
         breakOnSingleNewLine: true,
         enableEmojiSyntax: true,
         enableWikiLinkSyntax: false,
         enableExtendedTableSyntax: false,
-
-        // Chrome configuration
         chromePath,
-
-        // Security: disable script execution
+        // Security: never execute embedded code.
         enableScriptExecution: false,
       },
     })
 
-    // Get the markdown engine for the temp file
-    const engine = notebook.getNoteMarkdownEngine(tempFileName)
-
-    // Export to PDF using Chrome/Puppeteer
-    // crossnote returns the path to the generated PDF
-    outputPath = await engine.chromeExport({
+    return await notebook.getNoteMarkdownEngine(tempFileName).chromeExport({
       fileType: "pdf",
-      runAllCodeChunks: false, // Don't execute code chunks for security
+      runAllCodeChunks: false,
     })
   } catch (error: unknown) {
-    // Clean up temp file before throwing
-    try {
-      unlinkSync(tempFilePath)
-    } catch {
-      // Ignore cleanup errors
-    }
     throw new Error(
       `Failed to render markdown with crossnote: ${error instanceof Error ? error.message : String(error)}`
     )
+  } finally {
+    // PDF lands outside tempDir, so only the input file needs cleanup.
+    // .catch() prevents an rm failure from masking the original error.
+    await rm(tempFilePath, { force: true }).catch(() => {})
   }
-
-  // Clean up temp markdown file (PDF is in a different location)
-  try {
-    unlinkSync(tempFilePath)
-  } catch {
-    // Ignore cleanup errors - temp files will be cleaned up by OS eventually
-  }
-
-  return outputPath
 }

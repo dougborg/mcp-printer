@@ -3,7 +3,7 @@
  * Enforces allowlist/denylist rules and blocks access to dotfiles and sensitive directories.
  */
 
-import { realpathSync } from "fs"
+import { realpath } from "fs/promises"
 import { resolve, sep } from "path"
 import { config } from "./config.js"
 
@@ -29,12 +29,12 @@ function pathContainsDotfile(filePath: string): boolean {
  * @param filePath - The file path to validate
  * @throws {Error} If the file path is not allowed with a descriptive message
  */
-export function validateFilePath(filePath: string): void {
+export async function validateFilePath(filePath: string): Promise<void> {
   // Resolve to absolute path and follow symlinks
   const originalAbsolutePath = resolve(filePath)
   let absolutePath: string
   try {
-    absolutePath = realpathSync(originalAbsolutePath)
+    absolutePath = await realpath(originalAbsolutePath)
   } catch {
     // If file doesn't exist yet or can't be resolved, use resolved path without following symlinks
     absolutePath = originalAbsolutePath

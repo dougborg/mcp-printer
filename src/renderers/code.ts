@@ -22,7 +22,7 @@
  * plugins) is necessary for server-side Node.js rendering without DOM APIs.
  */
 
-import { readFileSync } from "fs"
+import { readFile } from "fs/promises"
 import { basename, dirname, extname, join } from "path"
 import { fileURLToPath } from "url"
 import hljs from "highlight.js"
@@ -238,27 +238,25 @@ function applySyntaxHighlighting(sourceCode: string, language: string): string {
  * Loads the CSS for a highlight.js color scheme.
  * Tries the specified theme, falls back to default, then to minimal inline CSS.
  */
-function loadColorSchemeCSS(colorScheme: string): string {
-  try {
-    const stylesDir = join(__dirname, "../../node_modules/highlight.js/styles")
-    const themeFileName = colorScheme + ".css"
-    const themePath = join(stylesDir, themeFileName)
+async function loadColorSchemeCSS(colorScheme: string): Promise<string> {
+  const stylesDir = join(__dirname, "../../node_modules/highlight.js/styles")
 
+  const tryRead = async (path: string): Promise<string | null> => {
     try {
-      return readFileSync(themePath, "utf-8")
+      return await readFile(path, "utf-8")
     } catch {
-      // Try .min.css version
-      const minThemePath = join(stylesDir, `${colorScheme}.min.css`)
-      return readFileSync(minThemePath, "utf-8")
+      return null
     }
-  } catch {
-    // Fall back to default theme
-    try {
-      const defaultPath = join(__dirname, "../../node_modules/highlight.js/styles/default.css")
-      return readFileSync(defaultPath, "utf-8")
-    } catch {
-      // If all else fails, use minimal inline CSS
-      return `
+  }
+
+  const fromTheme =
+    (await tryRead(join(stylesDir, `${colorScheme}.css`))) ??
+    (await tryRead(join(stylesDir, `${colorScheme}.min.css`))) ??
+    (await tryRead(join(stylesDir, "default.css")))
+
+  if (fromTheme !== null) return fromTheme
+
+  return `
         .hljs { display: block; overflow-x: auto; padding: 0.5em; background: #f0f0f0; }
         .hljs-keyword { color: #0000ff; font-weight: bold; }
         .hljs-string { color: #008000; }
@@ -266,8 +264,6 @@ function loadColorSchemeCSS(colorScheme: string): string {
         .hljs-number { color: #ff0000; }
         .hljs-function { color: #0000ff; }
       `
-    }
-  }
 }
 
 /**
@@ -406,10 +402,10 @@ export async function renderCodeToPdf(
   options?: RenderCodeOptions
 ): Promise<string> {
   // Step 1: Validate file path
-  validateFilePath(filePath)
+  await validateFilePath(filePath)
 
   // Step 2: Read source code and identify language
-  const sourceCode = readFileSync(filePath, "utf-8")
+  const sourceCode = await readFile(filePath, "utf-8")
   const language = getLanguageFromExtension(filePath)
 
   // Step 3: Apply syntax highlighting with extension-based language, fallback to auto-detect
@@ -423,7 +419,7 @@ export async function renderCodeToPdf(
   const tableRows = buildTableRows(lines, showLineNumbers)
 
   const selectedColorScheme = options?.colorScheme ?? config.code.colorScheme
-  const colorSchemeCSS = loadColorSchemeCSS(selectedColorScheme)
+  const colorSchemeCSS = await loadColorSchemeCSS(selectedColorScheme)
 
   const html = generateHTML(
     filePath,

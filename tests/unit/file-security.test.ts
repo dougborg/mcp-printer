@@ -88,7 +88,7 @@ describe("validateFilePath", () => {
     const homeDir = homedir()
     const testPath = join(homeDir, "Documents", "test.txt")
 
-    expect(() => validateFilePath(testPath)).not.toThrow()
+    await expect(validateFilePath(testPath)).resolves.toBeUndefined()
   })
 
   it("should deny files in sensitive directories via dotfile blocking", async () => {
@@ -96,13 +96,13 @@ describe("validateFilePath", () => {
     const homeDir = homedir()
 
     // Test that dotfiles/dotdirs are blocked (new universal rule)
-    expect(() => validateFilePath(join(homeDir, ".ssh", "id_rsa"))).toThrow(
+    await expect(validateFilePath(join(homeDir, ".ssh", "id_rsa"))).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
-    expect(() => validateFilePath(join(homeDir, ".gnupg", "private-keys"))).toThrow(
+    await expect(validateFilePath(join(homeDir, ".gnupg", "private-keys"))).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
-    expect(() => validateFilePath(join(homeDir, ".aws", "credentials"))).toThrow(
+    await expect(validateFilePath(join(homeDir, ".aws", "credentials"))).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
   })
@@ -112,13 +112,13 @@ describe("validateFilePath", () => {
     const homeDir = homedir()
 
     // Test that all .env variants are blocked by dotfile rule
-    expect(() => validateFilePath(join(homeDir, "projects", ".env"))).toThrow(
+    await expect(validateFilePath(join(homeDir, "projects", ".env"))).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
-    expect(() => validateFilePath(join(homeDir, "projects", ".env.local"))).toThrow(
+    await expect(validateFilePath(join(homeDir, "projects", ".env.local"))).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
-    expect(() => validateFilePath(join(homeDir, "projects", ".env.production"))).toThrow(
+    await expect(validateFilePath(join(homeDir, "projects", ".env.production"))).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
   })
@@ -127,9 +127,9 @@ describe("validateFilePath", () => {
     const { validateFilePath } = await import("../../src/file-security.js")
 
     // Test that system directories are blocked
-    expect(() => validateFilePath("/etc/passwd")).toThrow(/Access denied/)
-    expect(() => validateFilePath("/var/log/system.log")).toThrow(/Access denied/)
-    expect(() => validateFilePath("/root/secret.txt")).toThrow(/Access denied/)
+    await expect(validateFilePath("/etc/passwd")).rejects.toThrow(/Access denied/)
+    await expect(validateFilePath("/var/log/system.log")).rejects.toThrow(/Access denied/)
+    await expect(validateFilePath("/root/secret.txt")).rejects.toThrow(/Access denied/)
   })
 
   it("should deny files outside allowed paths with helpful error", async () => {
@@ -144,7 +144,7 @@ describe("validateFilePath", () => {
     const { validateFilePath } = await import("../../src/file-security.js")
 
     try {
-      validateFilePath("/tmp/test.txt")
+      await validateFilePath("/tmp/test.txt")
       expect.fail("Should have thrown an error")
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(Error)
@@ -162,7 +162,7 @@ describe("validateFilePath", () => {
 
     // Subdirectories of denied paths should be denied
     const deepSshPath = join(homeDir, ".ssh", "subfolder", "key.pem")
-    expect(() => validateFilePath(deepSshPath)).toThrow(/Access denied/)
+    await expect(validateFilePath(deepSshPath)).rejects.toThrow(/Access denied/)
   })
 })
 
@@ -174,16 +174,16 @@ describe("cross-platform path handling - Windows simulation", () => {
     })
 
     // Test Windows dotfile paths - should be blocked
-    expect(() => validateFilePath("C:\\Users\\alice\\.env")).toThrow(
+    await expect(validateFilePath("C:\\Users\\alice\\.env")).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
-    expect(() => validateFilePath("C:\\Users\\alice\\.ssh\\id_rsa")).toThrow(
+    await expect(validateFilePath("C:\\Users\\alice\\.ssh\\id_rsa")).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
-    expect(() => validateFilePath("C:\\Users\\alice\\Documents\\.secret")).toThrow(
+    await expect(validateFilePath("C:\\Users\\alice\\Documents\\.secret")).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
-    expect(() => validateFilePath("C:\\Users\\alice\\.config\\app\\settings.json")).toThrow(
+    await expect(validateFilePath("C:\\Users\\alice\\.config\\app\\settings.json")).rejects.toThrow(
       /Dotfiles and hidden directories/
     )
   })
@@ -195,8 +195,12 @@ describe("cross-platform path handling - Windows simulation", () => {
     })
 
     // Test normal Windows paths - should be allowed
-    expect(() => validateFilePath("C:\\Users\\alice\\Documents\\report.pdf")).not.toThrow()
-    expect(() => validateFilePath("C:\\Users\\alice\\Documents\\folder\\file.txt")).not.toThrow()
+    await expect(
+      validateFilePath("C:\\Users\\alice\\Documents\\report.pdf")
+    ).resolves.toBeUndefined()
+    await expect(
+      validateFilePath("C:\\Users\\alice\\Documents\\folder\\file.txt")
+    ).resolves.toBeUndefined()
   })
 
   it("should correctly check path prefixes with Windows backslashes", async () => {
@@ -206,15 +210,17 @@ describe("cross-platform path handling - Windows simulation", () => {
     })
 
     // Test allowed path
-    expect(() => validateFilePath("C:\\Users\\alice\\Documents\\report.pdf")).not.toThrow()
+    await expect(
+      validateFilePath("C:\\Users\\alice\\Documents\\report.pdf")
+    ).resolves.toBeUndefined()
 
     // Test denied subdirectory
-    expect(() => validateFilePath("C:\\Users\\alice\\Documents\\private\\secret.txt")).toThrow(
-      /restricted directory/
-    )
+    await expect(
+      validateFilePath("C:\\Users\\alice\\Documents\\private\\secret.txt")
+    ).rejects.toThrow(/restricted directory/)
 
     // Test outside allowed paths
-    expect(() => validateFilePath("C:\\Users\\alice\\Downloads\\file.pdf")).toThrow(
+    await expect(validateFilePath("C:\\Users\\alice\\Downloads\\file.pdf")).rejects.toThrow(
       /outside allowed directories/
     )
   })

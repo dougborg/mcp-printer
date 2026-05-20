@@ -4,9 +4,8 @@
  */
 
 import { execa, type ExecaError } from "execa"
-import { access, readFile } from "fs/promises"
+import { access, mkdtemp, open as openFile, readFile, rm, writeFile } from "fs/promises"
 import { constants } from "fs"
-import { writeFileSync, mkdtempSync, unlinkSync } from "fs"
 import { extname, join } from "path"
 import { tmpdir } from "os"
 import { config, MARKDOWN_EXTENSIONS, type MarkdownExtension } from "./config.js"
@@ -86,35 +85,32 @@ export async function fileExists(filePath: string): Promise<boolean> {
  * @returns True if shebang found, false otherwise
  */
 export async function hasShebang(filePath: string): Promise<boolean> {
+  let fileHandle
   try {
-    // Read first 1024 bytes of the file
-    const buffer = Buffer.alloc(1024)
-    const { open } = await import("fs/promises")
-    const fileHandle = await open(filePath, "r")
-
-    try {
-      const { bytesRead } = await fileHandle.read(buffer, 0, 1024, 0)
-      await fileHandle.close()
-
-      if (bytesRead === 0) {
-        return false
-      }
-
-      // Convert buffer to string and check for shebang
-      const content = buffer.toString("utf-8", 0, bytesRead)
-      // Handle all line ending types: Unix (\n), Windows (\r\n), old Mac (\r)
-      const lines = content.split(/\r?\n|\r/)
-
-      // Check if any line starts with #!
-      // Note: Trim handles extra whitespace, though technically shebangs
-      // must be the first two bytes. We're lenient to catch more cases.
-      return lines.some((line) => line.trim().startsWith("#!"))
-    } catch {
-      await fileHandle.close()
-      return false
-    }
+    fileHandle = await openFile(filePath, "r")
   } catch {
     return false
+  }
+
+  try {
+    const buffer = new Uint8Array(1024)
+    const { bytesRead } = await fileHandle.read(buffer, 0, 1024, 0)
+
+    if (bytesRead === 0) {
+      return false
+    }
+
+    // fatal: false so a mid-character truncation at byte 1024 doesn't throw.
+    const content = new TextDecoder("utf-8", { fatal: false }).decode(buffer.subarray(0, bytesRead))
+    // Handle all line ending types: Unix (\n), Windows (\r\n), old Mac (\r).
+    const lines = content.split(/\r?\n|\r/)
+    // Lenient: trim handles extra whitespace even though shebangs must
+    // technically occupy the first two bytes.
+    return lines.some((line) => line.trim().startsWith("#!"))
+  } catch {
+    return false
+  } finally {
+    await fileHandle.close().catch(() => {})
   }
 }
 
@@ -200,19 +196,17 @@ export async function convertHtmlToPdf(
 ): Promise<string> {
   const { chromeFlags = [], tempDirPrefix = "mcp-printer-" } = options
 
-  // Find Chrome/Chromium executable
-  const chromePath = await findChrome()
-
-  // Create secure temp directory
-  const tmpDir = mkdtempSync(join(tmpdir(), tempDirPrefix))
+  // Chrome lookup and temp-dir creation are independent — overlap them.
+  const [chromePath, tmpDir] = await Promise.all([
+    findChrome(),
+    mkdtemp(join(tmpdir(), tempDirPrefix)),
+  ])
   const tmpHtml = join(tmpDir, "input.html")
   const tmpPdf = join(tmpDir, "output.pdf")
 
   try {
-    // Write HTML to temp file
-    writeFileSync(tmpHtml, htmlContent, "utf-8")
+    await writeFile(tmpHtml, htmlContent, "utf-8")
 
-    // Convert HTML to PDF with Chrome headless
     try {
       await execa(chromePath, [
         "--headless",
@@ -222,32 +216,26 @@ export async function convertHtmlToPdf(
         tmpHtml,
       ])
     } catch (error) {
-      // Chrome outputs success messages to stderr, check if PDF was actually created
+      // Chrome reports success to stderr; only treat as failure if the
+      // "written to file" line is absent.
       const execaError = error as ExecaError
       const stderr = String(execaError.stderr ?? "")
       if (!stderr.includes("written to file")) {
         throw new Error(`Failed to render PDF: ${execaError.message}`)
       }
-      // Success - Chrome wrote the PDF and reported to stderr
-    }
-
-    // Clean up HTML file
-    try {
-      unlinkSync(tmpHtml)
-    } catch {
-      // Ignore cleanup errors
     }
 
     return tmpPdf
   } catch (error) {
-    // Clean up temp files on error
-    try {
-      unlinkSync(tmpHtml)
-    } catch {}
-    try {
-      unlinkSync(tmpPdf)
-    } catch {}
+    // PDF won't be returned, so remove both temp files. The OS will reap
+    // the (now empty) tmpDir. .catch() prevents an rm failure from
+    // masking the original error.
+    await rm(tmpPdf, { force: true }).catch(() => {})
     throw error
+  } finally {
+    // HTML input is only needed for the Chrome invocation; remove it
+    // regardless of outcome.
+    await rm(tmpHtml, { force: true }).catch(() => {})
   }
 }
 
@@ -542,7 +530,7 @@ export interface RenderOptions {
  */
 export async function prepareFileForPrinting(options: RenderOptions): Promise<RenderResult> {
   // Validate file path security
-  validateFilePath(options.filePath)
+  await validateFilePath(options.filePath)
 
   let actualFilePath = options.filePath
   let renderedPdf: string | null = null
@@ -616,12 +604,10 @@ export function isDuplexEnabled(options?: string): boolean {
  *
  * @param renderedPdf - Path to rendered PDF temp file (or null)
  */
-export function cleanupRenderedPdf(renderedPdf: string | null): void {
+export async function cleanupRenderedPdf(renderedPdf: string | null): Promise<void> {
   if (renderedPdf) {
-    try {
-      unlinkSync(renderedPdf)
-    } catch {
-      // Ignore cleanup errors
-    }
+    // Callers invoke this from `finally`; swallow rm errors so cleanup
+    // never masks the originating exception.
+    await rm(renderedPdf, { force: true }).catch(() => {})
   }
 }
