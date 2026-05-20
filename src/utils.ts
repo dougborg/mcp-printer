@@ -45,6 +45,8 @@ export function parseDelimitedString(
     .map((item) => (transform ? transform(item) : item))
 }
 
+export { escape as escapeHtml } from "html-escaper"
+
 /**
  * Executes a command safely without spawning a shell.
  *

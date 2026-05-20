@@ -20,12 +20,12 @@ importers:
       gray-matter:
         specifier: ^4.0.3
         version: 4.0.3
-      he:
-        specifier: ^1.2.0
-        version: 1.2.0
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
+      html-escaper:
+        specifier: ^3.0.3
+        version: 3.0.3
       pdf-parse:
         specifier: ^2.4.4
         version: 2.4.4
@@ -33,9 +33,9 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
-      '@types/he':
-        specifier: ^1.2.3
-        version: 1.2.3
+      '@types/html-escaper':
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/node':
         specifier: ^24.8.1
         version: 24.8.1
@@ -1013,8 +1013,8 @@ packages:
   '@types/geojson@7946.0.16':
     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
 
-  '@types/he@1.2.3':
-    resolution: {integrity: sha512-q67/qwlxblDzEDvzHhVkwc1gzVWxaNxeyHUBF4xElrvjL11O+Ytze+1fGpBHlr/H9myiBUaUXNnNPmBHxxfAcA==}
+  '@types/html-escaper@3.0.4':
+    resolution: {integrity: sha512-UKSaMPMXXKnq1jDj74seVikfdq5pWvoXcIgOUbwYzHuAEGiv8/juom1i/MsWBF8boFSI0uHQCSZauzr5OYnnJA==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -2493,10 +2493,6 @@ packages:
   hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
-
-  he@1.2.0:
-    resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
-    hasBin: true
 
   highlight.js@11.11.1:
     resolution: {integrity: sha512-Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w==}
@@ -5506,7 +5502,7 @@ snapshots:
 
   '@types/geojson@7946.0.16': {}
 
-  '@types/he@1.2.3': {}
+  '@types/html-escaper@3.0.4': {}
 
   '@types/json-schema@7.0.15': {}
 
@@ -7212,8 +7208,6 @@ snapshots:
   hasown@2.0.2:
     dependencies:
       function-bind: 1.1.2
-
-  he@1.2.0: {}
 
   highlight.js@11.11.1: {}
 

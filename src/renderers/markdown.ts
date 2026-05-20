@@ -9,8 +9,7 @@ import { basename, join } from "path"
 import { readFileSync, writeFileSync, mkdtempSync, unlinkSync } from "fs"
 import { tmpdir } from "os"
 import matter from "gray-matter"
-import he from "he"
-import { findChrome } from "../utils.js"
+import { escapeHtml, findChrome } from "../utils.js"
 import { validateFilePath } from "../file-security.js"
 import { config } from "../config.js"
 import { Notebook } from "crossnote"
@@ -44,7 +43,7 @@ function getPageNumberConfig(filename: string) {
     headerTemplate: "<div></div>",
     footerTemplate: `
       <div style="${footerStyles.container}">
-        <span style="${footerStyles.filename}">${he.encode(filename)}</span>
+        <span style="${footerStyles.filename}">${escapeHtml(filename)}</span>
         <span><span class="pageNumber"></span> / <span class="totalPages"></span></span>
       </div>
     `,

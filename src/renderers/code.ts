@@ -26,8 +26,7 @@ import { readFileSync } from "fs"
 import { basename, dirname, extname, join } from "path"
 import { fileURLToPath } from "url"
 import hljs from "highlight.js"
-import he from "he"
-import { convertHtmlToPdf, hasShebang } from "../utils.js"
+import { convertHtmlToPdf, escapeHtml, hasShebang } from "../utils.js"
 import { validateFilePath } from "../file-security.js"
 import { config } from "../config.js"
 
@@ -373,7 +372,7 @@ function generateHTML(
   </style>
 </head>
 <body>
-  <h3 class="filepath">${he.encode(filePath)}</h3>
+  <h3 class="filepath">${escapeHtml(filePath)}</h3>
   <table class="hljs">
     ${tableRows}
   </table>
