@@ -61,7 +61,7 @@
     "format:check": "prettier --check \"**/*.{ts,json,md,yml,yaml}\""
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.20.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "crossnote": "^0.9.28",
     "execa": "^9.6.0",
     "gray-matter": "^4.0.3",
