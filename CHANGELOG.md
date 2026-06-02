@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+> This is the changelog for the maintained fork [`@dougborg/mcp-printer`](https://www.npmjs.com/package/@dougborg/mcp-printer).
+> From `2.1.0` onward, releases and entries are generated automatically by
+> [release-please](docs/release-process.md) from Conventional Commits. Entries at `2.0.0` and
+> below are inherited from upstream [`steveclarke/mcp-printer`](https://github.com/steveclarke/mcp-printer).
+
 ## [2.0.0] - 2025-10-20
 
 ### Added

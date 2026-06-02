@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  # Publish when release-please publishes the GitHub Release for a merged release PR.
+  # release-please creates the tag AND the release, so triggering on `release: published`
+  # alone avoids a duplicate run (and a failed second `npm publish`) from a tag-push trigger.
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for npm Trusted Publishing (OIDC) + provenance
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tag/ref
+        uses: actions/checkout@v5
+        with:
+          # Use the release tag when triggered by a release, otherwise the pushed ref.
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify lint, format, build, and unit tests
+        # Pre-publish sanity gate. The full suite (including the Chrome-dependent
+        # integration tests) already ran in CI on this exact commit before merge;
+        # this workflow doesn't install Chromium, so it runs unit tests only.
+        run: |
+          pnpm run lint
+          pnpm run format:check
+          pnpm run build
+          pnpm run test:unit
+
+      - name: Ensure npm supports Trusted Publishing (OIDC)
+        run: npm install -g npm@latest
+
+      - name: Publish to npm (Trusted Publishing + provenance)
+        env:
+          # For Trusted Publishing with provenance, do NOT set NODE_AUTH_TOKEN.
+          # The package must be configured as a Trusted Publisher in npm for this repo.
+          # (For the very first publish, configure the trusted publisher in npm settings,
+          #  or temporarily publish with an automation token, then switch to OIDC.)
+          NPM_CONFIG_PROVENANCE: true
+        run: npm publish --provenance --access public
