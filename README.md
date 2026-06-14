@@ -2,6 +2,8 @@
 
 An MCP server for printing documents on macOS/Linux. Provides AI assistants with the ability to print files, manage print queues, and control printers via the CUPS printing system.
 
+> **🔱 Maintained fork.** This is the actively maintained fork of [`steveclarke/mcp-printer`](https://github.com/steveclarke/mcp-printer), published to npm as [`@dougborg/mcp-printer`](https://www.npmjs.com/package/@dougborg/mcp-printer). It carries a lazy-loaded crossnote fix (so disabling markdown rendering avoids loading the broken ESM bundle) and a current dependency stack with security patches ahead of upstream's stalled Dependabot PRs. The MCP server name and `mcp-printer` CLI command are unchanged, so existing configs keep working — only the npm package name differs. See [Differences from upstream](#differences-from-upstream).
+
 ## Why?
 
 In the era of AI-assisted development, we're generating more documentation, specs, guides, and code than ever before. When working with AI on complex projects, it's often valuable to review generated artifacts offline on paper. This tool makes it effortless to ask your AI assistant: *"Print all the markdown files you just created"* or *"Print the README and all TypeScript files in this directory"* — streamlining the workflow from AI generation to offline review.
@@ -19,6 +21,7 @@ In the era of AI-assisted development, we're generating more documentation, spec
 - [Security](#security)
 - [Development](#development)
 - [Requirements](#requirements)
+- [Differences from upstream](#differences-from-upstream)
 - [Contributing](#contributing)
 
 ## Features
@@ -42,7 +45,7 @@ Add to your MCP configuration file (e.g., `~/.cursor/mcp.json` for Cursor):
   "mcpServers": {
     "Printer": {
       "command": "npx",
-      "args": ["-y", "mcp-printer"]
+      "args": ["-y", "@dougborg/mcp-printer"]
     }
   }
 }
@@ -87,7 +90,7 @@ All configuration is optional. Add an `env` object to customize behavior:
   "mcpServers": {
     "Printer": {
       "command": "npx",
-      "args": ["-y", "mcp-printer"],
+      "args": ["-y", "@dougborg/mcp-printer"],
       "env": {
         "MCP_PRINTER_DEFAULT_PRINTER": "HP_LaserJet_Pro",
         "MCP_PRINTER_AUTO_DUPLEX": "true",
@@ -695,7 +698,7 @@ To enable them, set the environment variable:
   "mcpServers": {
     "Printer": {
       "command": "npx",
-      "args": ["-y", "mcp-printer"],
+      "args": ["-y", "@dougborg/mcp-printer"],
       "env": {
         "MCP_PRINTER_ENABLE_MANAGEMENT": "true"
       }
@@ -717,7 +720,7 @@ To enable them, set the environment variable:
 ### Setup
 
 ```bash
-git clone https://github.com/steveclarke/mcp-printer.git
+git clone https://github.com/dougborg/mcp-printer.git
 cd mcp-printer
 pnpm install
 pnpm run build
@@ -783,13 +786,13 @@ If you prefer not to use the `npx` approach in your MCP config, you can install 
 
 ```bash
 # npm
-npm install -g mcp-printer
+npm install -g @dougborg/mcp-printer
 
 # pnpm
-pnpm add -g mcp-printer
+pnpm add -g @dougborg/mcp-printer
 
 # yarn
-yarn global add mcp-printer
+yarn global add @dougborg/mcp-printer
 ```
 
 Then reference it directly in your MCP config (without npx):
@@ -817,12 +820,33 @@ Then reference it directly in your MCP config (without npx):
   - You can specify a custom path by setting `MCP_PRINTER_CHROME_PATH`
 - Printers configured in your system
 
+## Differences from upstream
+
+This fork tracks [`steveclarke/mcp-printer`](https://github.com/steveclarke/mcp-printer) and stays
+API-compatible — same MCP server name, same `mcp-printer` CLI command, same tools and environment
+variables. What's different:
+
+- **Lazy-loaded crossnote.** The markdown renderer (`crossnote`) is imported on first use instead
+  of at module load. When markdown rendering is disabled, the broken ESM bundle is never loaded, so
+  the server starts cleanly instead of crashing. (Upstream PR
+  [steveclarke/mcp-printer#44](https://github.com/steveclarke/mcp-printer/pull/44).)
+- **Current, patched dependency stack.** The MCP SDK and transitive dependencies (including security
+  patches for `qs`, `lodash`, `body-parser`, `undici`, and others) are kept current, ahead of
+  upstream's stalled Dependabot queue.
+- **Published as `@dougborg/mcp-printer`.** Upstream owns the unscoped `mcp-printer` name on npm; this
+  fork publishes under the `@dougborg` scope. The binary on your `PATH` is still `mcp-printer`.
+- **Automated releases.** Releases are driven by [release-please](docs/release-process.md) +
+  npm Trusted Publishing with provenance, rather than the manual `np` flow.
+
+Everything else — features, tools, configuration, security model — matches upstream. Upstream-specific
+fixes are synced in as they appear.
+
 ## Contributing
 
 Contributions welcome! Areas for improvement:
-- Windows support (using Windows Print Spooler)
+- Windows support (see the [fork audit ideas in #6](https://github.com/dougborg/mcp-printer/issues/6) — the `@printers/printers` v2 adapter is the most promising path)
 - More print options
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE). Originally authored by Stephen Clarke; maintained as a fork by Doug Borg.

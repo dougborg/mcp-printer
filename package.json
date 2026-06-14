@@ -1,17 +1,20 @@
 {
-  "name": "mcp-printer",
+  "name": "@dougborg/mcp-printer",
   "version": "2.0.0",
-  "description": "MCP server for printing documents on macOS/Linux via CUPS. Gives AI assistants the ability to print files, manage print queues, and control printers.",
+  "description": "MCP server for printing documents on macOS/Linux via CUPS. Gives AI assistants the ability to print files, manage print queues, and control printers. Maintained fork of steveclarke/mcp-printer.",
   "author": "Stephen Clarke",
+  "contributors": [
+    "Doug Borg <dougborg@dougborg.org>"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/steveclarke/mcp-printer.git"
+    "url": "https://github.com/dougborg/mcp-printer.git"
   },
   "bugs": {
-    "url": "https://github.com/steveclarke/mcp-printer/issues"
+    "url": "https://github.com/dougborg/mcp-printer/issues"
   },
-  "homepage": "https://github.com/steveclarke/mcp-printer#readme",
+  "homepage": "https://github.com/dougborg/mcp-printer#readme",
   "keywords": [
     "mcp",
     "mcp-server",
@@ -42,13 +45,16 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "clean": "rm -rf dist",
     "build": "tsc",
     "dev": "tsc --watch",
     "prepare": "husky",
     "prepublishOnly": "pnpm run build",
-    "release": "np",
     "test": "pnpm run test:unit && pnpm run test:integration",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration --testTimeout=30000",
@@ -84,7 +90,6 @@
     "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "np": "^10.3.0",
     "prettier": "^3.8.3",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
