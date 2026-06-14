@@ -7,6 +7,19 @@ All notable changes to this project will be documented in this file.
 > [release-please](docs/release-process.md) from Conventional Commits. Entries at `2.0.0` and
 > below are inherited from upstream [`steveclarke/mcp-printer`](https://github.com/steveclarke/mcp-printer).
 
+## [2.1.0](https://github.com/dougborg/mcp-printer/compare/v2.0.0...v2.1.0) (2026-06-14)
+
+
+### Features
+
+* establish @dougborg/mcp-printer maintained fork (v2.1.0) ([#7](https://github.com/dougborg/mcp-printer/issues/7)) ([042d1e1](https://github.com/dougborg/mcp-printer/commit/042d1e1eeb80e2ea35e3923eac083a2f6a2b49a3))
+
+
+### Bug Fixes
+
+* lazy-load crossnote (sync slim version into fork master) ([b03d7d4](https://github.com/dougborg/mcp-printer/commit/b03d7d4290343b640570f033acade4c01250f4ca))
+* lazy-load crossnote to isolate module-load failures ([5b7ea34](https://github.com/dougborg/mcp-printer/commit/5b7ea34819d6d0d8ddab9131361da78df0f2d53b))
+
 ## [2.0.0] - 2025-10-20
 
 ### Added
@@ -85,4 +98,3 @@ All notable changes to this project will be documented in this file.
 [2.0.0]: https://github.com/steveclarke/mcp-printer/releases/tag/v2.0.0
 [1.3.0]: https://github.com/steveclarke/mcp-printer/releases/tag/v1.3.0
 [1.0.0]: https://github.com/steveclarke/mcp-printer/releases/tag/v1.0.0
-
